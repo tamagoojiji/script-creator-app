@@ -8,15 +8,13 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("script-creator-history") || "[]");
-    setHistory(data);
+    try {
+      const data = JSON.parse(localStorage.getItem("script-creator-history") || "[]");
+      setHistory(data);
+    } catch { /* localStorage破損時は空履歴 */ }
   }, []);
 
   const handleOpen = (item: HistoryItem) => {
-    localStorage.setItem("script-creator-current", JSON.stringify({
-      script: item.script,
-      yaml: item.yaml,
-    }));
     navigate("/result/" + item.id);
   };
 

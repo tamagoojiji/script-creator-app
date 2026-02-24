@@ -2,28 +2,21 @@ import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ScriptPreview from "../components/ScriptPreview";
 import YamlViewer from "../components/YamlViewer";
-import type { GeneratedScript, HistoryItem, Script, ScriptScene } from "../types";
+import type { HistoryItem, Script, ScriptScene } from "../types";
 
 export default function ResultPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
   const data = useMemo(() => {
-    // まず current を試す
-    const current = localStorage.getItem("script-creator-current");
-    if (current) {
-      try {
-        const parsed = JSON.parse(current);
-        if (parsed.script && parsed.yaml) return parsed as { script: GeneratedScript; yaml: string };
-      } catch { /* ignore */ }
-    }
+    if (!id) return null;
 
-    // 履歴から検索
-    if (id) {
+    // 履歴からidで検索
+    try {
       const history: HistoryItem[] = JSON.parse(localStorage.getItem("script-creator-history") || "[]");
       const item = history.find((h) => h.id === id);
       if (item) return { script: item.script, yaml: item.yaml };
-    }
+    } catch { /* localStorage破損時 */ }
 
     return null;
   }, [id]);
@@ -64,7 +57,10 @@ export default function ResultPage() {
     };
 
     const key = "reel-scripts";
-    const existing = JSON.parse(localStorage.getItem(key) || "[]");
+    let existing: Script[] = [];
+    try {
+      existing = JSON.parse(localStorage.getItem(key) || "[]");
+    } catch { /* ignore */ }
     existing.push(reelScript);
     localStorage.setItem(key, JSON.stringify(existing));
 

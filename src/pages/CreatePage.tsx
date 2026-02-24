@@ -32,12 +32,6 @@ export default function CreatePage() {
         // 履歴に保存
         const id = saveToHistory(res.script, res.yaml, transcript, template, targets);
 
-        // 現在の結果をlocalStorageにセット
-        localStorage.setItem("script-creator-current", JSON.stringify({
-          script: res.script,
-          yaml: res.yaml,
-        }));
-
         navigate("/result/" + id);
       }
     } catch (e) {
