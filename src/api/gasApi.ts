@@ -1,6 +1,19 @@
 import { getGasUrl } from "../config";
 import type { GasResponse, TemplateType, TargetPlatform } from "../types";
 
+/**
+ * GAS Web Appにリクエストを送信
+ * GASは302リダイレクトするため、redirect: "follow" を明示指定
+ */
+async function gasPost(url: string, payload: object): Promise<Response> {
+  return fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(payload),
+    redirect: "follow",
+  });
+}
+
 export async function generateScript(
   transcript: string,
   template: TemplateType,
@@ -11,18 +24,11 @@ export async function generateScript(
     throw new Error("GAS URLが設定されていません。設定画面でURLを入力してください。");
   }
 
-  const body = JSON.stringify({
+  const res = await gasPost(url, {
     action: "generate",
     transcript,
     template,
     targets,
-  });
-
-  // Content-Type: text/plain でPOST（CORS preflight回避）
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body,
   });
 
   if (!res.ok) {
@@ -44,12 +50,8 @@ export async function testConnection(): Promise<{ ok: boolean; message: string }
   }
 
   try {
-    const body = JSON.stringify({ action: "test" });
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body,
-    });
+    // テスト接続はGET（doGet）を使用（リダイレクト問題を回避）
+    const res = await fetch(url, { redirect: "follow" });
 
     if (!res.ok) {
       return { ok: false, message: `HTTP ${res.status}` };
