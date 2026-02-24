@@ -1,0 +1,106 @@
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import ScriptPreview from "../components/ScriptPreview";
+import YamlViewer from "../components/YamlViewer";
+import type { GeneratedScript, HistoryItem, Script, ScriptScene } from "../types";
+
+export default function ResultPage() {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+
+  const data = useMemo(() => {
+    // まず current を試す
+    const current = localStorage.getItem("script-creator-current");
+    if (current) {
+      try {
+        const parsed = JSON.parse(current);
+        if (parsed.script && parsed.yaml) return parsed as { script: GeneratedScript; yaml: string };
+      } catch { /* ignore */ }
+    }
+
+    // 履歴から検索
+    if (id) {
+      const history: HistoryItem[] = JSON.parse(localStorage.getItem("script-creator-history") || "[]");
+      const item = history.find((h) => h.id === id);
+      if (item) return { script: item.script, yaml: item.yaml };
+    }
+
+    return null;
+  }, [id]);
+
+  if (!data) {
+    return (
+      <div className="p-4 text-center space-y-4 pt-20">
+        <p className="text-slate-400">結果がありません</p>
+        <button
+          onClick={() => navigate("/")}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+        >
+          作成画面に戻る
+        </button>
+      </div>
+    );
+  }
+
+  const { script, yaml } = data;
+
+  const handleOpenInReelScript = () => {
+    const reelScript: Script = {
+      id: Date.now().toString(),
+      name: script.title,
+      preset: "coral",
+      scenes: script.scenes.map((s): ScriptScene => ({
+        text: s.text,
+        expression: s.expression,
+        emphasis: s.emphasis || [],
+        display: s.display,
+        overlay: s.overlay,
+      })),
+      cta: script.cta
+        ? { text: script.cta.text, expression: script.cta.expression }
+        : undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const key = "reel-scripts";
+    const existing = JSON.parse(localStorage.getItem(key) || "[]");
+    existing.push(reelScript);
+    localStorage.setItem(key, JSON.stringify(existing));
+
+    window.location.href =
+      "https://tamagoojiji.github.io/reel-script-app/#/editor/" + reelScript.id;
+  };
+
+  return (
+    <div className="p-4 pb-8 space-y-5">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => navigate("/")}
+          className="text-blue-400 text-sm"
+        >
+          ← 戻る
+        </button>
+        <h1 className="text-lg font-bold">生成結果</h1>
+        <div className="w-10" />
+      </div>
+
+      <ScriptPreview script={script} />
+      <YamlViewer yaml={yaml} title={script.title} />
+
+      <button
+        onClick={handleOpenInReelScript}
+        className="w-full py-3 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-500 active:bg-emerald-700"
+      >
+        reel-script-app で開く
+      </button>
+
+      <button
+        onClick={() => navigate("/")}
+        className="w-full py-3 rounded-xl font-bold bg-slate-700 text-white hover:bg-slate-600"
+      >
+        新しい台本を作成
+      </button>
+    </div>
+  );
+}
